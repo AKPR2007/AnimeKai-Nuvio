@@ -67,13 +67,13 @@
       "contentLanguage": ["en", "hi"]
     },
     { 
-      "id": "uhdmovies",
-      "name": "UHDMovies",
-      "description": "UHDMovies - Alternative streaming provider with multiple sources",
+      "id": "xprime",
+      "name": "XPrime",
+      "description": "XPrime - Alternative streaming provider with multiple sources",
       "version": "1.0.0",
-      "author": "Yoruix",
+      "author": "tapframe",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/uhdmovies.js",
+      "filename": "providers/xprime.js",
       "enabled": true,
       "formats": ["mp4", "mkv", "m3u8"],
       "logo": "",
