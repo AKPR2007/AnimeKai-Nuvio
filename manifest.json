@@ -72,6 +72,27 @@
       ]
     },
     {
+      "id": "flixindia",
+      "name": "FlixIndia",
+      "description": "Streaming provider for FlixIndia"
+      "version": "1.0.0",
+      "filename": "providers/flixindia.js",
+      "logo": "https://m.flixindia.xyz/onepieceskull.png",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "enabled": true,
+      "contentLanguage": [
+        "en"
+      ],
+      "formats": [
+        "mkv"
+      ]
+      "disabledPlatforms": [],
+      "supportsExternalPlayer": true,
+    },
+    { 
       "id": "twoembed",
       "name": "TwoEmbed",
       "description": "TwoEmbed - Alternative streaming provider with multiple sources",
