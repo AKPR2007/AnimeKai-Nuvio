@@ -67,17 +67,17 @@
       "contentLanguage": ["en", "hi"]
     },
     { 
-      "id": "xprime",
-      "name": "XPrime",
-      "description": "XPrime - Alternative streaming provider with multiple sources",
-      "version": "1.0.0",
-      "author": "tapframe",
-      "supportedTypes": ["movie", "tv"],
-      "filename": "providers/xprime.js",
+      "id": "movies4u",
+      "name": "Movies4u",
+      "description": "Movies4u provider for Nuvio.",
+      "version": "1.0.1",
+      "author": "User",
+      "supportedTypes": ["movie"],
+      "filename": "src/providers/movies4u.js",
       "enabled": true,
       "formats": ["mp4", "mkv", "m3u8"],
       "logo": "",
-      "contentLanguage": ["en", "hi"] 
+      "contentLanguage": ["en", "hi", "ta"] 
     }
   ]
 }
