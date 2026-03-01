@@ -537,4 +537,201 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
         }
         
         function tryPlatform(platformIndex) {
-  
+            if (platformIndex >= platforms.length) {
+                console.log('[NetMirror] No content found on any platform');
+                return [];
+            }
+            
+            const platform = platforms[platformIndex];
+            console.log(`[NetMirror] Trying platform: ${platform}`);
+            
+            // Try searching with just the title first
+            function trySearch(withYear) {
+                const searchQuery = withYear ? `${title} ${year}` : title;
+                console.log(`[NetMirror] Searching for: "${searchQuery}"`);
+                
+                return searchContent(searchQuery, platform).then(function (searchResults) {
+                    if (searchResults.length === 0) {
+                        if (!withYear && year) {
+                            console.log(`[NetMirror] No results for "${title}", trying with year...`);
+                            return trySearch(true);
+                        }
+                        return null;
+                    }
+                    
+                    // Filter results for relevance
+                    const relevantResults = filterRelevantResults(searchResults, title);
+                    
+                    if (relevantResults.length === 0) {
+                        console.log(`[NetMirror] Found ${searchResults.length} results but none were relevant enough`);
+                        if (!withYear && year) {
+                            console.log(`[NetMirror] Trying with year...`);
+                            return trySearch(true);
+                        }
+                        return null;
+                    }
+                    
+                    // Use the most relevant search result
+                    const selectedContent = relevantResults[0];
+                    console.log(`[NetMirror] Selected: ${selectedContent.title} (ID: ${selectedContent.id}) - filtered from ${searchResults.length} results`);
+                    
+                    return loadContent(selectedContent.id, platform).then(function (contentData) {
+                        let targetContentId = selectedContent.id;
+                        
+                        // For TV shows, find the specific episode
+                        let episodeData = null;
+                        if (mediaType === 'tv' && !contentData.isMovie) {
+                            const validEpisodes = contentData.episodes.filter(ep => ep !== null);
+                            episodeData = validEpisodes.find(ep => {
+                                let epSeason, epNumber;
+                                
+                                if (ep.s && ep.ep) {
+                                    epSeason = parseInt(ep.s.replace('S', ''));
+                                    epNumber = parseInt(ep.ep.replace('E', ''));
+                                } else if (ep.season && ep.episode) {
+                                    epSeason = parseInt(ep.season);
+                                    epNumber = parseInt(ep.episode);
+                                } else if (ep.season_number && ep.episode_number) {
+                                    epSeason = parseInt(ep.season_number);
+                                    epNumber = parseInt(ep.episode_number);
+                                }
+                                
+                                return epSeason === (seasonNum || 1) && epNumber === (episodeNum || 1);
+                            });
+                            
+                            if (episodeData) {
+                                targetContentId = episodeData.id;
+                                console.log(`[NetMirror] Found episode ID: ${episodeData.id}`);
+                            } else {
+                                console.log(`[NetMirror] Episode S${seasonNum}E${episodeNum} not found`);
+                                return null;
+                            }
+                        }
+                        
+                        return getStreamingLinks(targetContentId, title, platform).then(function (streamData) {
+                            if (!streamData.sources || streamData.sources.length === 0) {
+                                console.log(`[NetMirror] No streaming links found`);
+                                return null;
+                            }
+                            
+                            // Convert to Nuvio stream format
+                            const streams = streamData.sources.map(source => {
+                                // Extract quality from URL parameters or source label
+                                let quality = 'HD';
+                                
+                                // Try to extract quality from URL parameters
+                                const urlQualityMatch = source.url.match(/[?&]q=(\d+p)/i);
+                                if (urlQualityMatch) {
+                                    quality = urlQualityMatch[1];
+                                } else if (source.quality) {
+                                    // Try to extract from source label
+                                    const labelQualityMatch = source.quality.match(/(\d+p)/i);
+                                    if (labelQualityMatch) {
+                                        quality = labelQualityMatch[1];
+                                    } else {
+                                        // Normalize quality labels
+                                        const normalizedQuality = source.quality.toLowerCase();
+                                        if (normalizedQuality.includes('full hd') || normalizedQuality.includes('1080')) {
+                                            quality = '1080p';
+                                        } else if (normalizedQuality.includes('hd') || normalizedQuality.includes('720')) {
+                                            quality = '720p';
+                                        } else if (normalizedQuality.includes('480')) {
+                                            quality = '480p';
+                                        } else {
+                                            quality = source.quality;
+                                        }
+                                    }
+                                } else if (source.url.includes('720p')) {
+                                    quality = '720p';
+                                } else if (source.url.includes('480p')) {
+                                    quality = '480p';
+                                } else if (source.url.includes('1080p')) {
+                                    quality = '1080p';
+                                }
+                                
+                                // Build title with episode name if available
+                                let streamTitle = `${title} ${year ? `(${year})` : ''} ${quality}`;
+                                if (mediaType === 'tv') {
+                                    const episodeName = episodeData && episodeData.t ? episodeData.t : '';
+                                    streamTitle += ` S${seasonNum}E${episodeNum}`;
+                                    if (episodeName) {
+                                        streamTitle += ` - ${episodeName}`;
+                                    }
+                                }
+                                
+                                // Platform-specific headers (match Kotlin providers)
+                                const lowerPlatform = (platform || '').toLowerCase();
+                                const isNfOrPv = lowerPlatform === 'netflix' || lowerPlatform === 'primevideo';
+                                const streamHeaders = {
+                                    "Accept": "application/vnd.apple.mpegurl, video/mp4, */*",
+                                    "Origin": isNfOrPv ? "https://net51.cc" : "https://net51.cc",
+                                    "Referer": isNfOrPv ? "https://net51.cc/" : "https://net51.cc/tv/home",
+                                    "Cookie": "hd=on",
+                                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/138.0.7204.156 Mobile/15E148 Safari/604.1"
+                                };
+                                
+                                return {
+                                    name: `NetMirror (${platform.charAt(0).toUpperCase() + platform.slice(1)})`,
+                                    title: streamTitle,
+                                    url: source.url,
+                                    quality: quality,
+                                    type: source.type.includes('mpegURL') ? 'hls' : 'direct',
+                                    headers: streamHeaders
+                                };
+                            });
+                            
+                            // Sort streams: Auto quality first, then by quality (highest first)
+                            streams.sort((a, b) => {
+                                // Auto quality always comes first
+                                if (a.quality.toLowerCase() === 'auto' && b.quality.toLowerCase() !== 'auto') {
+                                    return -1;
+                                }
+                                if (b.quality.toLowerCase() === 'auto' && a.quality.toLowerCase() !== 'auto') {
+                                    return 1;
+                                }
+                                
+                                // If both are Auto or neither is Auto, sort by quality
+                                const parseQuality = (quality) => {
+                                    const match = quality.match(/(\d{3,4})p/i);
+                                    return match ? parseInt(match[1], 10) : 0;
+                                };
+                                
+                                const qualityA = parseQuality(a.quality);
+                                const qualityB = parseQuality(b.quality);
+                                return qualityB - qualityA; // Highest quality first
+                            });
+                            
+                            console.log(`[NetMirror] Successfully processed ${streams.length} streams from ${platform}`);
+                            return streams;
+                        });
+                    });
+                });
+            }
+            
+            return trySearch(false).then(function (result) {
+                if (result) {
+                    return result;
+                } else {
+                    console.log(`[NetMirror] No content found on ${platform}, trying next platform`);
+                    return tryPlatform(platformIndex + 1);
+                }
+            }).catch(function (error) {
+                console.log(`[NetMirror] Error on ${platform}: ${error.message}, trying next platform`);
+                return tryPlatform(platformIndex + 1);
+            });
+        }
+        
+        return tryPlatform(0);
+    }).catch(function (error) {
+        console.error(`[NetMirror] Error in getStreams: ${error.message}`);
+        return [];
+    });
+}
+
+// Export the main function
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { getStreams };
+} else {
+    // For React Native environment
+    global.getStreams = getStreams;
+}
