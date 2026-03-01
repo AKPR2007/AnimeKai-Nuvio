@@ -76,7 +76,7 @@
       "filename": "providers/4khdhub.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "https://i.postimg.cc/x121F0ww/4khdhub.png",
+      "logo": "https://i.postimg.cc/DZpW6Xfb/4khdhub.png",
       "contentLanguage": ["en"]
     },
     {
@@ -89,7 +89,7 @@
       "filename": "providers/dahmermovies.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "https://i.postimg.cc/rpWt8mJT/dahmermovies.png",
+      "logo": "https://i.postimg.cc/SRwnFbzB/dhamermovies.png",
       "contentLanguage": ["en"] 
     },
     {
