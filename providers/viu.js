@@ -1,3 +1,4 @@
+const fetch = globalThis.fetch || require("node-fetch");
 const NAME = "viu";
 
 async function getTMDB(title, mediaType) {
