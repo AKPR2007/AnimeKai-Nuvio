@@ -1,104 +1,57 @@
-const fetch = globalThis.fetch || require("node-fetch");
-const NAME = "viu";
+import fetch from "node-fetch";
 
-async function getTMDB(title, mediaType) {
-  const url =
-    "https://www.themoviedb.org/search?query=" +
-    encodeURIComponent(title);
+const PROVIDER_NAME = "Viu";
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" }
+async function extractStream(embedUrl) {
+  const res = await fetch(embedUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Referer": "https://vidsrc.to/"
+    }
   });
 
   const html = await res.text();
 
-  let match;
+  // Look for HLS stream
+  const m3u8 =
+    html.match(/file:\s*"(https:[^"]+\.m3u8[^"]*)"/) ||
+    html.match(/"(https:[^"]+\.m3u8[^"]*)"/);
 
-  if (mediaType === "tv") {
-    match = html.match(/\/tv\/(\d+)/);
-  } else {
-    match = html.match(/\/movie\/(\d+)/);
-  }
+  if (!m3u8) return null;
 
-  if (!match) {
-    const any = html.match(/\/(tv|movie)\/(\d+)/);
-    if (any) match = [any[0], any[2]];
-  }
-
-  if (!match) return null;
-
-  return match[1];
+  return m3u8[1];
 }
 
-async function getStreams(title, mediaType, season, episode) {
-  console.log("[viu] title:", title);
+export async function streams(ctx) {
+  const { type, tmdbId, season, episode } = ctx;
+
+  let embed;
+
+  if (type === "movie") {
+    embed = `https://vidsrc.to/embed/movie/${tmdbId}`;
+  } else {
+    embed = `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
+  }
 
   try {
-    const tmdb = await getTMDB(title, mediaType);
+    const stream = await extractStream(embed);
 
-    if (!tmdb) {
-      console.log("[viu] tmdb not found");
-      return [];
-    }
+    if (!stream) return [];
 
-    console.log("[viu] tmdb:", tmdb);
-
-    const s = season || 1;
-    const e = episode || 1;
-
-    const streams = [];
-
-    const providers = [
+    return [
       {
-        name: "VidSrc",
-        movie: `https://vidsrc.to/embed/movie/${tmdb}`,
-        tv: `https://vidsrc.to/embed/tv/${tmdb}/${s}/${e}`,
-        referer: "https://vidsrc.to/"
-      },
-      {
-        name: "VidSrc.me",
-        movie: `https://vidsrc.me/embed/movie/${tmdb}`,
-        tv: `https://vidsrc.me/embed/tv/${tmdb}/${s}/${e}`,
-        referer: "https://vidsrc.me/"
-      },
-      {
-        name: "2Embed",
-        movie: `https://www.2embed.cc/embed/${tmdb}`,
-        tv: `https://www.2embed.cc/embedtv/${tmdb}&s=${s}&e=${e}`,
-        referer: "https://www.2embed.cc/"
-      },
-      {
-        name: "MultiEmbed",
-        movie: `https://multiembed.mov/?video_id=${tmdb}&tmdb=1`,
-        tv: `https://multiembed.mov/?video_id=${tmdb}&tmdb=1&s=${s}&e=${e}`,
-        referer: "https://multiembed.mov/"
-      },
-      {
-        name: "SuperEmbed",
-        movie: `https://multiembed.mov/directstream.php?video_id=${tmdb}&tmdb=1`,
-        tv: `https://multiembed.mov/directstream.php?video_id=${tmdb}&tmdb=1&s=${s}&e=${e}`,
-        referer: "https://multiembed.mov/"
-      }
-    ];
-
-    for (const p of providers) {
-      streams.push({
-        name: NAME,
-        title: p.name,
-        url: mediaType === "movie" ? p.movie : p.tv,
+        name: PROVIDER_NAME,
+        title: "VidSrc HLS",
+        url: stream,
         quality: "auto",
         headers: {
-          Referer: p.referer,
+          Referer: "https://vidsrc.to/",
           "User-Agent": "Mozilla/5.0"
         }
-      });
-    }
-
-    return streams;
+      }
+    ];
   } catch (err) {
-    console.log("[viu] error:", err.message);
+    console.log("extract error", err);
     return [];
   }
 }
-
-module.exports = { getStreams };
