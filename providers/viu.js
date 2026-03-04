@@ -6,13 +6,12 @@ async function extractStream(embedUrl) {
   const res = await fetch(embedUrl, {
     headers: {
       "User-Agent": "Mozilla/5.0",
-      "Referer": "https://vidsrc.to/"
+      Referer: "https://vidsrc.to/"
     }
   });
 
   const html = await res.text();
 
-  // Look for HLS stream
   const m3u8 =
     html.match(/file:\s*"(https:[^"]+\.m3u8[^"]*)"/) ||
     html.match(/"(https:[^"]+\.m3u8[^"]*)"/);
@@ -22,7 +21,7 @@ async function extractStream(embedUrl) {
   return m3u8[1];
 }
 
-export async function streams(ctx) {
+async function streams(ctx) {
   const { type, tmdbId, season, episode } = ctx;
 
   let embed;
@@ -51,7 +50,16 @@ export async function streams(ctx) {
       }
     ];
   } catch (err) {
-    console.log("extract error", err);
+    console.log("[viu] extract error:", err.message);
     return [];
   }
 }
+
+export default {
+  name: "viu",
+  displayName: "Viu",
+  async streams(ctx) {
+    console.log("[viu] getStreams", ctx.title);
+    return await streams(ctx);
+  }
+};
