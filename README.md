@@ -1,4 +1,4 @@
-# JK Nuvio Providers
+# Nuvio Providers - Compiled by =[D3adly]=
 
 A collection of high-quality local scrapers for the Nuvio streaming application. These scrapers allow you to fetch premium streams from various sources directly within the app.
 
@@ -8,7 +8,7 @@ A collection of high-quality local scrapers for the Nuvio streaming application.
 2. Go to **Settings → Local Scrapers**
 3. Add this repository URL:
    ```
-   https://raw.githubusercontent.com/YOUR_USERNAME/jk-nuvio-providers/main/
+   https://raw.githubusercontent.com/D3adlyRocket/allinone/main/
    ```
 4. Enable the scrapers you want to use
 
