@@ -1,147 +1,126 @@
 const PROVIDER_NAME = "Domty";
 
-const HEADERS = {
-  "User-Agent": "Mozilla/5.0",
-  "Accept-Language": "en-US,en;q=0.9"
-};
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
 
-async function httpGet(url, referer) {
+async function request(url, referer) {
   const res = await fetch(url, {
     headers: {
-      ...HEADERS,
+      "User-Agent": UA,
+      "Accept-Language": "en-US,en;q=0.9",
       ...(referer ? { Referer: referer } : {})
     }
   });
 
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return await res.text();
+  if (!res.ok) throw new Error(res.status);
+  return res.text();
 }
 
-function extractLinks(html) {
-
-  const links = new Set();
-
-  const patterns = [
-    /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/gi,
-    /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/gi,
-    /(https?:\/\/[^"' ]+\/embed\/[^"' ]*)/gi,
-    /(https?:\/\/[^"' ]+\/player[^"' ]*)/gi
-  ];
-
-  patterns.forEach(r => {
-    let m;
-    while ((m = r.exec(html)) !== null) {
-      links.add(m[1]);
-    }
-  });
-
-  return [...links];
+async function getTitle(tmdb, type) {
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/${type}/${tmdb}?api_key=1`);
+    const j = await r.json();
+    return j.title || j.name || tmdb;
+  } catch {
+    return tmdb;
+  }
 }
 
-function extractIframes(html) {
+function findStreams(html) {
+  const out = [];
+  const re = /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/gi;
 
+  let m;
+  while ((m = re.exec(html))) out.push(m[1]);
+
+  return out;
+}
+
+function findIframes(html) {
   const frames = [];
   const re = /<iframe[^>]+src=["']([^"']+)["']/gi;
 
   let m;
-
-  while ((m = re.exec(html)) !== null) {
+  while ((m = re.exec(html))) {
     if (m[1].startsWith("http")) frames.push(m[1]);
   }
 
   return frames;
 }
 
-async function getFromPage(url) {
-
+async function extractFromPage(url) {
   try {
+    const html = await request(url);
 
-    const html = await httpGet(url);
+    let streams = findStreams(html);
+    if (streams.length) return streams;
 
-    let links = extractLinks(html);
+    const frames = findIframes(html);
 
-    if (links.length) return links;
-
-    const frames = extractIframes(html);
-
-    for (const f of frames.slice(0, 5)) {
+    for (const f of frames.slice(0, 4)) {
       try {
-        const inner = await httpGet(f, url);
-        links = links.concat(extractLinks(inner));
+        const inner = await request(f, url);
+        streams = streams.concat(findStreams(inner));
       } catch {}
     }
 
-    return links;
-
+    return streams;
   } catch {
     return [];
   }
 }
 
-const SOURCES = [
-  "https://wecima.movie",
+const SITES = [
   "https://mycima.cc",
-  "https://akwam.to",
-  "https://faselhd.watch"
+  "https://wecima.movie",
+  "https://akwam.to"
 ];
 
-async function searchSite(base, query) {
-
+async function search(base, q) {
   try {
-
-    const url = `${base}/search/${encodeURIComponent(query)}`;
-
-    const html = await httpGet(url, base);
+    const url = `${base}/?s=${encodeURIComponent(q)}`;
+    const html = await request(url, base);
 
     const results = [];
-
-    const re = /<a[^>]+href=["'](https?:\/\/[^"']+)["'][^>]*>(.*?)<\/a>/gi;
+    const re = /<a[^>]+href=["'](https?:\/\/[^"']+)["']/gi;
 
     let m;
-
-    while ((m = re.exec(html)) !== null) {
-
-      const link = m[1];
-      const text = m[2].replace(/<[^>]+>/g, "").trim();
-
-      if (text && link.includes(base))
-        results.push(link);
+    while ((m = re.exec(html))) {
+      if (m[1].includes(base)) results.push(m[1]);
     }
 
     return results.slice(0, 3);
-
   } catch {
     return [];
   }
 }
 
 async function getStreams(tmdbId, type, season, episode) {
+  console.log("[DOMTY] Start");
 
-  console.log("[DOMTY] Start", tmdbId);
-
-  const streams = [];
+  const title = await getTitle(tmdbId, type);
 
   const query =
     type === "tv"
-      ? `${tmdbId} season ${season} episode ${episode}`
-      : tmdbId;
+      ? `${title} season ${season || 1}`
+      : title;
 
-  for (const site of SOURCES) {
+  const streams = [];
 
-    const results = await searchSite(site, query);
+  for (const site of SITES) {
+    const pages = await search(site, query);
 
-    for (const r of results) {
+    for (const p of pages) {
+      const links = await extractFromPage(p);
 
-      const links = await getFromPage(r);
-
-      links.forEach(l => {
+      for (const l of links) {
         streams.push({
           name: "Domty",
           url: l,
           quality: "HD",
-          headers: { Referer: r }
+          headers: { Referer: p }
         });
-      });
+      }
     }
   }
 
