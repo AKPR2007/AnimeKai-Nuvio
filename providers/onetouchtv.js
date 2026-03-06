@@ -1,11 +1,14 @@
 /**
- * OneTouchTV provider
+ * onetouchtv provider
  */
 
 const axios = require("axios");
 const cheerio = require("cheerio-without-node-native");
 
 const BASE = "https://onetouchtv.xyz";
+
+const TMDB_API_KEY = "1b3113663c9004682ed61086cf967c44";
+const TMDB_BASE = "https://api.themoviedb.org/3";
 
 const HEADERS = {
  "User-Agent":
@@ -17,61 +20,82 @@ function formatTitle(title,season,episode){
  const s = String(season||1).padStart(2,"0");
  const e = String(episode||1).padStart(2,"0");
 
- return `OneTouchTV (1080p)
+ return `OneTouchTV (1080p) [OneTouchTV]
 📺 ${title} S${s}E${e}`;
+}
+
+async function getTMDBTitle(id,type){
+
+ try{
+
+  const endpoint = type==="tv" ? "tv" : "movie";
+
+  const url=`${TMDB_BASE}/${endpoint}/${id}?api_key=${TMDB_API_KEY}`;
+
+  const res = await axios.get(url);
+
+  return res.data.name || res.data.title;
+
+ }catch(e){
+
+  console.log("[OneTouchTV] TMDB error");
+
+  return null;
+
+ }
+
 }
 
 async function search(title){
 
- const url = `${BASE}/?s=${encodeURIComponent(title)}`;
+ const url=`${BASE}/?s=${encodeURIComponent(title)}`;
 
- const res = await axios.get(url,{headers:HEADERS});
+ const res=await axios.get(url,{headers:HEADERS});
 
- const $ = cheerio.load(res.data);
+ const $=cheerio.load(res.data);
 
  const results=[];
 
- $("article a").each((i,el)=>{
+ $("article h2 a").each((i,el)=>{
 
-  const link=$(el).attr("href");
-
-  if(link && link.includes(BASE)){
-
-   results.push(link);
-
-  }
+  results.push({
+   title:$(el).text().trim(),
+   url:$(el).attr("href")
+  });
 
  });
 
- return [...new Set(results)];
+ return results;
+
 }
 
 async function findEpisode(seriesUrl,episode){
 
- const res = await axios.get(seriesUrl,{headers:HEADERS});
+ const res=await axios.get(seriesUrl,{headers:HEADERS});
 
- const $ = cheerio.load(res.data);
+ const $=cheerio.load(res.data);
 
- let ep=null;
+ let epLink=null;
 
  $("a").each((i,el)=>{
 
   const text=$(el).text();
 
-  if(text.includes(`Episode ${episode}`)){
+  if(text.match(new RegExp(`Episode\\s*${episode}`,"i"))){
 
-   ep=$(el).attr("href");
+   epLink=$(el).attr("href");
 
   }
 
  });
 
- return ep;
+ return epLink;
+
 }
 
-async function extractStream(page){
+async function extractStream(url){
 
- const res = await axios.get(page,{headers:HEADERS});
+ const res=await axios.get(url,{headers:HEADERS});
 
  const html=res.data;
 
@@ -90,29 +114,56 @@ async function extractStream(page){
  if(stream) return stream[0];
 
  return null;
+
 }
 
 async function getStreams(tmdbId,mediaType="tv",season=1,episode=1){
 
  try{
 
-  const title = typeof tmdbId==="string" ? tmdbId : "";
+  const title=await getTMDBTitle(tmdbId,mediaType);
 
-  if(!title) return [];
+  if(!title){
 
-  const results = await search(title);
+   console.log("[OneTouchTV] no title");
 
-  if(!results.length) return [];
+   return [];
 
-  const seriesPage = results[0];
+  }
 
-  const episodePage = await findEpisode(seriesPage,episode);
+  console.log("[OneTouchTV] searching:",title);
 
-  if(!episodePage) return [];
+  const results=await search(title);
 
-  const stream = await extractStream(episodePage);
+  if(!results.length){
 
-  if(!stream) return [];
+   console.log("[OneTouchTV] no results");
+
+   return [];
+
+  }
+
+  const match=results[0];
+
+  const epPage=await findEpisode(match.url,episode);
+
+  if(!epPage){
+
+   console.log("[OneTouchTV] episode not found");
+
+   return [];
+
+  }
+
+  const stream=await extractStream(epPage);
+
+  if(!stream){
+
+   console.log("[OneTouchTV] stream not found");
+
+   return [];
+
+  }
 
   return [
 
@@ -138,4 +189,4 @@ async function getStreams(tmdbId,mediaType="tv",season=1,episode=1){
 
 }
 
-module.exports = { getStreams };
+module.exports={getStreams};
