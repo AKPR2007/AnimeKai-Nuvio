@@ -1,74 +1,54 @@
 const axios = require("axios");
-const CryptoJS = require("crypto-js");
 
-const BASE_URL = "https://s1.devcorp.me";
 const PROVIDER_NAME = "OneTouchTV";
-
-// AES key from Cloudstream provider
-const HEX_KEY = "4f6e65546f7563685465564b6579";
-
-function decryptAES(data) {
-  try {
-    const key = CryptoJS.enc.Hex.parse(HEX_KEY);
-
-    const decrypted = CryptoJS.AES.decrypt(data, key, {
-      mode: CryptoJS.mode.ECB,
-      padding: CryptoJS.pad.Pkcs7
-    });
-
-    return decrypted.toString(CryptoJS.enc.Utf8);
-  } catch {
-    return null;
-  }
-}
 
 async function getStreams(tmdbId, mediaType, season, episode) {
   try {
 
-    let api;
+    let title;
 
     if (mediaType === "movie") {
-      api = `${BASE_URL}/api/movie/${tmdbId}`;
+      title = `tmdb-${tmdbId}`;
     } else {
-      api = `${BASE_URL}/api/tv/${tmdbId}/${season}/${episode}`;
+      title = `tmdb-${tmdbId}-s${season}e${episode}`;
     }
 
-    const res = await axios.get(api, {
+    const playerUrl =
+      `https://s1.devcorp.me/player/player.html?title=${title}`;
+
+    const res = await axios.get(playerUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0",
-        "Referer": "https://s1.devcorp.me/",
-        "Origin": "https://s1.devcorp.me"
+        "Referer": "https://s1.devcorp.me/"
       }
     });
 
-    if (!res.data || !res.data.data) return [];
+    const html = res.data;
 
-    const decrypted = decryptAES(res.data.data);
+    const match = html.match(/file=\[(.*?)\]/);
 
-    if (!decrypted) return [];
+    if (!match) return [];
 
-    const json = JSON.parse(decrypted);
+    const json = JSON.parse(`[${match[1]}]`);
 
     const streams = [];
 
-    if (json.sources) {
-      json.sources.forEach(source => {
-        if (!source.file) return;
+    json.forEach((server) => {
+      if (!server.file) return;
 
-        streams.push({
-          url: source.file,
-          quality: source.label || "HD",
-          type: "hls",
-          headers: {
-            Referer: "https://s1.devcorp.me/"
-          }
-        });
+      streams.push({
+        url: server.file,
+        quality: server.title || "HD",
+        type: "hls",
+        headers: {
+          Referer: "https://s1.devcorp.me/"
+        }
       });
-    }
+    });
 
     return streams;
 
-  } catch (err) {
+  } catch (e) {
     return [];
   }
 }
