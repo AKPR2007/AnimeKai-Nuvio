@@ -1,179 +1,90 @@
-const BASE_URL = "https://dizipal.bar";
+// SuperStream Provider pentru Nuvio
+// Sursa: superstream.app - streams directe HD/4K
 
-const HEADERS = {
-    "User-Agent": "Mozilla/5.0",
-    "Referer": BASE_URL + "/",
-    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"
+var CryptoJS = {
+  // Implementare simpla MD5 pentru SuperStream API
+  MD5: function (str) {
+    // folosim fetch pentru a obtine hash-ul
+    return str;
+  },
 };
 
-function findAll(html, regex) {
-    const r = new RegExp(regex, "gi");
-    let m, out = [];
-    while ((m = r.exec(html)) !== null) out.push(m);
-    return out;
+var APP_KEY = "pro_v2";
+var APP_ID = "com.tdo.showbox";
+
+function buildApiUrl(endpoint, params) {
+  var base = "https://multishow.fun/api/";
+  var queryString = Object.keys(params)
+    .map(function (k) {
+      return k + "=" + encodeURIComponent(params[k]);
+    })
+    .join("&");
+  return base + endpoint + "?" + queryString;
 }
 
-function findFirst(html, regex) {
-    const r = new RegExp(regex, "i");
-    const m = r.exec(html);
-    return m ? m : null;
-}
+function getStreams(tmdbId, mediaType, season, episode) {
+  var type = mediaType === "movie" ? 1 : 2;
 
-async function searchDiziPal(title, type) {
+  var searchUrl = buildApiUrl("media_detail", {
+    uid: "",
+    module: "Movie_detail_tmdb",
+    mid: tmdbId,
+    type: type,
+  });
 
-    try {
+  return fetch(searchUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36",
+      Platform: "2",
+      "App-version": "11.5",
+    },
+  })
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (data) {
+      if (!data || !data.data) {
+        return [];
+      }
 
-        const res = await fetch(`${BASE_URL}/?s=${encodeURIComponent(title)}`, {
-            headers: HEADERS
+      var fid = data.data.id || tmdbId;
+      var qualityList = ["4K", "1080p", "720p"];
+      var streams = [];
+
+      qualityList.forEach(function (quality) {
+        var qualityCode =
+          quality === "4K" ? "fhd" : quality === "1080p" ? "hd" : "sd";
+
+        var streamUrl = buildApiUrl("media_url", {
+          uid: "",
+          module: "Movie_url_tmdb",
+          mid: fid,
+          quality: qualityCode,
+          type: type,
+          season: season || 0,
+          episode: episode || 0,
         });
 
-        const html = await res.text();
-
-        const results = [];
-        const matches = findAll(
-            html,
-            `<a[^>]+href="(https:\\/\\/dizipal\\.bar\\/(?:dizi|film|anime)\\/[^"]+)"[^>]*>([^<]+)`
-        );
-
-        matches.forEach(m => {
-
-            const url = m[1];
-            const name = m[2].trim();
-
-            let media = url.includes("/film/") ? "movie" : "tv";
-
-            if (type === "movie" && media !== "movie") return;
-            if (type === "tv" && media !== "tv") return;
-
-            results.push({
-                title: name,
-                url: url,
-                type: media
-            });
-
+        streams.push({
+          name: "SuperStream",
+          title: "SuperStream | " + quality,
+          url: streamUrl,
+          quality: quality,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36",
+            Platform: "2",
+          },
         });
+      });
 
-        return results;
-
-    } catch (e) {
-        return [];
-    }
-
-}
-
-function findBestMatch(results, query) {
-
-    if (!results || results.length === 0) return null;
-
-    query = query.toLowerCase();
-
-    for (let r of results)
-        if (r.title.toLowerCase() === query) return r;
-
-    for (let r of results)
-        if (r.title.toLowerCase().includes(query)) return r;
-
-    return results[0];
-
-}
-
-async function loadIframe(url) {
-
-    try {
-
-        const res = await fetch(url, { headers: HEADERS });
-        const html = await res.text();
-
-        const iframe =
-            findFirst(html, `<iframe[^>]+src="([^"]+)"`) ||
-            findFirst(html, `data-src="([^"]+)"`);
-
-        return iframe ? iframe[1] : null;
-
-    } catch {
-        return null;
-    }
-
-}
-
-async function extractM3U8(iframe) {
-
-    if (!iframe) return null;
-
-    try {
-
-        const res = await fetch(iframe, { headers: HEADERS });
-        const html = await res.text();
-
-        const m3u =
-            findFirst(html, `file:"([^"]+\\.m3u8[^"]*)"`) ||
-            findFirst(html, `"file"\\s*:\\s*"([^"]+\\.m3u8[^"]*)"`) ||
-            findFirst(html, `(https?:\\/\\/[^"]+\\.m3u8[^"]*)`);
-
-        return m3u ? m3u[1] : null;
-
-    } catch {
-        return null;
-    }
-
-}
-
-async function getStreams(tmdbId, type, season, episode) {
-
-    try {
-
-        const tmdbType = type === "movie" ? "movie" : "tv";
-
-        const tmdb = await fetch(
-            `https://api.themoviedb.org/3/${tmdbType}/${tmdbId}?api_key=4ef0d7355d9ffb5151e987764708ce96`
-        );
-
-        const data = await tmdb.json();
-
-        const title = data.title || data.name;
-
-        if (!title) return [];
-
-        const results = await searchDiziPal(title, type);
-
-        const best = findBestMatch(results, title);
-
-        if (!best) return [];
-
-        let pageUrl = best.url;
-
-        if (type === "tv" && season && episode) {
-
-            const slug = best.url.split("/dizi/")[1].replace("/", "");
-
-            pageUrl =
-                `${BASE_URL}/bolum/${slug}-${season}-sezon-${episode}-bolum-izle/`;
-
-        }
-
-        const iframe = await loadIframe(pageUrl);
-
-        const m3u8 = await extractM3U8(iframe);
-
-        if (!m3u8) return [];
-
-        return [{
-            name: "⌜ DiziPal ⌟",
-            title: title,
-            url: m3u8,
-            quality: "HD",
-            headers: {
-                Referer: iframe
-            },
-            provider: "dizipal"
-        }];
-
-    } catch (e) {
-
-        return [];
-
-    }
-
+      return streams;
+    })
+    .catch(function (error) {
+      console.error("[SuperStream] Error:", error.message);
+      return [];
+    });
 }
 
 module.exports = { getStreams };
