@@ -1,49 +1,70 @@
-// Nuvio Local Scraper Template: kartoons.me
-// IMPORTANT: async/await is NOT supported in Nuvio. Use standard Promises.
+function getStreams(tmdbId, mediaType, seasonNum, episodeNum, title) {
 
-function getStreams(tmdbId, mediaType, seasonNum, episodeNum) {
-    return new Promise((resolve, reject) => {
-        // Placeholder title - in a real app, you'd convert the tmdbId to a real title
-        let searchTitle = "ben-10"; 
-        let searchUrl = `https://kartoons.me/?s=${searchTitle}`;
+    return new Promise(function(resolve) {
 
-        // 1. Search the site
+        let streams = [];
+        let searchTitle = title || "Ben 10";
+
+        let searchUrl = "https://kartoons.me/?s=" + encodeURIComponent(searchTitle);
+
+        // STEP 1: SEARCH
         fetch(searchUrl)
-            .then(response => response.text())
-            .then(html => {
-                // 2. Find the link to the cartoon's post
-                let postMatch = html.match(/href="(https:\/\/kartoons\.me\/[^"]+)"/);
-                if (!postMatch) return resolve([]);
-                
-                return fetch(postMatch[1]); 
-            })
-            .then(response => response ? response.text() : null)
-            .then(html => {
-                if (!html) return resolve([]);
+        .then(function(res){ return res.text(); })
+        .then(function(html){
 
-                // 3. Look for the video player iframe or direct mp4/m3u8 link
-                // This regex looks for standard video sources or embed links often used on anime/cartoon sites
-                let streamMatch = html.match(/src=["'](https:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)["']/i) || 
-                                  html.match(/src=["'](https:\/\/[^"']+(?:file|embed|v|e)\/[^"']+)["']/i);
+            let postMatch = html.match(/class="post-title[^"]*">\s*<a href="([^"]+)"/i);
 
-                if (streamMatch) {
-                    let streamUrl = streamMatch[1];
-                    resolve([{
-                        name: "Kartoons",
-                        description: "Cartoon/Anime Stream",
-                        url: streamUrl,
-                        behaviorHints: {
-                            notWebReady: false 
-                        }
-                    }]);
-                } else {
-                    resolve([]); // Link not found
+            if(!postMatch) {
+                resolve([]);
+                return;
+            }
+
+            let postUrl = postMatch[1];
+
+            // STEP 2: OPEN SHOW PAGE
+            return fetch(postUrl);
+
+        })
+        .then(function(res){
+            if(!res) return null;
+            return res.text();
+        })
+        .then(function(html){
+
+            if(!html){
+                resolve([]);
+                return;
+            }
+
+            // STEP 3: FIND PLAYER IFRAME
+            let iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/i);
+
+            if(!iframeMatch){
+                resolve([]);
+                return;
+            }
+
+            let iframeUrl = iframeMatch[1];
+
+            // STEP 4: RETURN STREAM
+            streams.push({
+                name: "Kartoons",
+                description: "Cartoon Stream",
+                url: iframeUrl,
+                behaviorHints: {
+                    notWebReady: false
                 }
-            })
-            .catch(error => {
-                resolve([]); 
             });
+
+            resolve(streams);
+
+        })
+        .catch(function(){
+            resolve([]);
+        });
+
     });
+
 }
 
 module.exports = { getStreams };
