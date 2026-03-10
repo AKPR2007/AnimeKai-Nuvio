@@ -1,84 +1,37 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
+// Nuvio Local Scraper Template: atishmkv3 -> HubCloud -> Direct Link
+// IMPORTANT: async/await is NOT supported in Nuvio. Use standard Promises.
 
-const BASE_URL = "https://atishmkv3.bond";
+function getStreams(tmdbId, mediaType, seasonNum, episodeNum) {
+    return new Promise((resolve, reject) => {
+        let movieTitle = "example-movie"; // You would pull this from TMDB in a real scenario
+        let searchUrl = `https://atishmkv3.bond/?s=${movieTitle}`;
 
-async function search(query) {
-  try {
-    const res = await axios.get(`${BASE_URL}/?s=${encodeURIComponent(query)}`);
-    const $ = cheerio.load(res.data);
+        // 1. Search the main site
+        fetch(searchUrl)
+            .then(response => response.text())
+            .then(html => {
+                // 2. Find the movie page link
+                let moviePageMatch = html.match(/href="(https:\/\/atishmkv3\.bond\/[^"]+)"/);
+                if (!moviePageMatch) return resolve([]);
+                
+                return fetch(moviePageMatch[1]); 
+            })
+            .then(response => response ? response.text() : null)
+            .then(html => {
+                if (!html) return resolve([]);
 
-    const results = [];
+                // 3. Find the HubCloud link on the movie page
+                let hubcloudMatch = html.match(/(https:\/\/[a-zA-Z0-9-]+\.hubcloud\.[a-zA-Z]+\/[^"'\s]+)/);
+                
+                if (!hubcloudMatch) return resolve([]);
+                let hubcloudUrl = hubcloudMatch[1];
 
-    $("article").each((i, el) => {
-      const title = $(el).find("h2.entry-title a").text().trim();
-      const url = $(el).find("h2.entry-title a").attr("href");
-      const image = $(el).find("img").attr("src");
+                // 4. Fetch the HubCloud page
+                return fetch(hubcloudUrl); 
+            })
+            .then(response => response ? response.text() : null)
+            .then(html => {
+                if (!html) return resolve([]);
 
-      if (title && url) {
-        results.push({
-          title,
-          url,
-          image
-        });
-      }
-    });
-
-    return results;
-
-  } catch (e) {
-    return [];
-  }
-}
-
-async function getStreams(url) {
-  try {
-    const res = await axios.get(url);
-    const html = res.data;
-    const $ = cheerio.load(html);
-
-    let streams = [];
-
-    // STEP 1: find iframe player
-    let iframe = $("iframe").attr("src");
-
-    if (!iframe) {
-      const match = html.match(/https?:\/\/[^'"]+\/player[^'"]+/);
-      if (match) iframe = match[0];
-    }
-
-    if (!iframe) return [];
-
-    // STEP 2: request player page
-    const playerRes = await axios.get(iframe, {
-      headers: {
-        Referer: url
-      }
-    });
-
-    const playerHTML = playerRes.data;
-
-    // STEP 3: extract master.m3u8
-    const m3u8Match = playerHTML.match(/https?:\/\/[0-9.]+\/v4\/.*?master\.m3u8[^\s'"]*/);
-
-    if (m3u8Match) {
-      streams.push({
-        name: "AtishMKV",
-        url: m3u8Match[0],
-        type: "hls"
-      });
-    }
-
-    return streams;
-
-  } catch (e) {
-    return [];
-  }
-}
-
-module.exports = {
-  name: "AtishMKV",
-  version: "1.0.1",
-  search,
-  getStreams
-};
+                // 5. Extract the final video link
+                let finalStreamMatch = html.match(/href="(https:\/\/[^"]+\.(?:mkv|mp4|m3u8)[^"]*
