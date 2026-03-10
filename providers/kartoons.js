@@ -2,40 +2,51 @@ function getStreams(tmdbId, mediaType, seasonNum, episodeNum) {
 
     return new Promise(function(resolve) {
 
-        let episodeId = "68b67032787cbee165d744fe";
-        let playerUrl = "https://kartoons.me/player?episodeId=" + episodeId;
-
-        fetch(playerUrl)
-        .then(function(res){ return res.text(); })
-        .then(function(html){
+        try {
 
             let streams = [];
 
-            let matches = html.match(/https:\/\/v\d+\.m3u8\w+\.workers\.dev\/playlist\/[A-Za-z0-9_\-]+/g);
+            fetch("https://kartoons.me/player?episodeId=68b67032787cbee165d744fe")
+            .then(function(res){ return res.text(); })
+            .then(function(html){
 
-            if(matches){
+                if(!html){
+                    resolve([]);
+                    return;
+                }
 
-                matches.forEach(function(link, i){
+                let regex = /https:\/\/v\d+\.m3u8\w+\.workers\.dev\/playlist\/[A-Za-z0-9_\-]+/g;
+                let matches = html.match(regex);
 
-                    streams.push({
-                        name: "Kartoons " + (i+1),
-                        description: "M3U8 Stream",
-                        url: link,
-                        behaviorHints: {
-                            notWebReady: false
-                        }
-                    });
+                if(matches){
 
-                });
+                    for(let i=0;i<matches.length;i++){
 
-            }
+                        streams.push({
+                            name: "Kartoons " + (i+1),
+                            description: "Stream",
+                            url: matches[i],
+                            behaviorHints: {
+                                notWebReady: false
+                            }
+                        });
 
-            resolve(streams);
+                    }
 
-        })
-        .catch(function(){
+                }
+
+                resolve(streams);
+
+            })
+            .catch(function(){
+                resolve([]);
+            });
+
+        } catch(e) {
+
             resolve([]);
-        });
+
+        }
 
     });
 
