@@ -156,7 +156,7 @@ function resolveM3U8(url, sourceName = 'Unknown') {
                         codecs: stream.codecs,
                         type: 'M3U8',
                         headers: WORKING_HEADERS,
-                        referer: 'https://xprime.tv'
+                        referer: 'https://xprime.stream'
                     });
                     
                     console.log(`  📊 ${quality} (${stream.resolution || 'Unknown resolution'}) - ${Math.round((stream.bandwidth || 0) / 1000000 * 10) / 10} Mbps`);
@@ -192,7 +192,7 @@ function resolveM3U8(url, sourceName = 'Unknown') {
                         quality: 'Unknown',
                         type: 'M3U8',
                         headers: WORKING_HEADERS,
-                        referer: 'https://xprime.tv'
+                        referer: 'https://xprime.stream'
                     }],
                     originalUrl: url
                 };
@@ -275,7 +275,7 @@ function resolveMultipleM3U8(links) {
 }
 
 // Constants
-const FALLBACK_DOMAIN = 'https://xprime.tv';
+const FALLBACK_DOMAIN = 'https://xprime.stream';
 const DOMAIN_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 
 // Global variables for domain caching
