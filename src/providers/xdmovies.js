@@ -24,7 +24,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 
 // src/providers/xdmovies/index.js
 var cheerio = require("cheerio-without-node-native");
-var XDMOVIES_API = "https://xdmovies.site";
+var XDMOVIES_API = "https://xdmovies.wtf";
 var TMDB_API_KEY = "1b3113663c9004682ed61086cf967c44";
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var XDMOVIES_HEADERS = {
