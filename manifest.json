@@ -134,6 +134,19 @@
       "contentLanguage": ["en", "tr"]
     },
     {
+      "id": "dooflix",
+      "name": "DooFlix",
+      "description": "Fast streaming provider with direct TMDB integration",
+      "version": "1.0.0",
+      "author": "Nuvio Team",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/dooflix.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "",
+      "contentLanguage": ["en", "es"]
+    },
+    {
       "id": "embed69",
       "name": "Embed69",
       "description": "Movies & Series in English & Spanish",
@@ -144,7 +157,6 @@
       "enabled": true,
       "formats": ["mp4", "m3u8"],
       "logo": "https://i.postimg.cc/SK9YMsHG/embed69.png",
-      "icon": "https://i.postimg.cc/SK9YMsHG/embed69.png",
       "contentLanguage": ["en", "es"]
     },
     {
@@ -152,7 +164,7 @@
       "name": "Hdhub4u",
       "description": "Auto-generated description for Hdhub4u",
       "version": "1.0.0",
-      "author": "Michat88",
+      "author": "Nuvio Team",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/hdhub4u.js",
       "enabled": true,
