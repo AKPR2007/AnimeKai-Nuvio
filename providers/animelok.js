@@ -1,6 +1,6 @@
 /**
- * Animelok - Dynamic Extraction Fix
- * Verified 2026 Strategy
+ * Animelok - Multi-Provider Ultra Fix
+ * Support for: Kwik, Anvod, Netmag, Watching.onl
  */
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -17,19 +17,14 @@ var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (
 
 async function search(query) {
   try {
-    const searchUrl = `${BASE_URL}/search?keyword=${encodeURIComponent(query)}`;
-    const res = await fetch(searchUrl, { headers: { "User-Agent": USER_AGENT } });
+    const res = await fetch(`${BASE_URL}/search?keyword=${encodeURIComponent(query)}`, { headers: { "User-Agent": USER_AGENT } });
     const html = await res.text();
     const $ = cheerio.load(html);
     const results = [];
-
     $("a[href*='/anime/']").each((i, el) => {
       const title = $(el).find("h3, .title, .font-bold").first().text().trim();
       const href = $(el).attr("href");
-      if (href && title) {
-        const id = href.split("/").pop().split("?")[0];
-        results.push({ title, id, type: "tv" });
-      }
+      if (href && title) results.push({ title, id: href.split("/").pop().split("?")[0], type: "tv" });
     });
     return results;
   } catch (e) { return []; }
@@ -44,53 +39,52 @@ async function getStreams(id, type, season, episode) {
     }
 
     try {
-      // STEP 1: Fetch the actual watch page to get the internal Episode ID
-      const watchPageUrl = `${BASE_URL}/watch/${slug}?ep=${episode}`;
-      const pageRes = yield fetch(watchPageUrl, { headers: { "User-Agent": USER_AGENT } });
-      const html = yield pageRes.text();
-      
-      // Look for the episode ID in the HTML (often in a data-id attribute or script)
-      const epIdMatch = html.match(/data-id="(\d+)"/i) || html.match(/"episodeId":"(\d+)"/i);
-      const epId = epIdMatch ? epIdMatch[1] : null;
-
-      // STEP 2: Use the internal ID to call the AJAX source provider
-      // If epId is missing, we fallback to the slug-based API
-      const apiUrl = epId 
-        ? `${BASE_URL}/api/source/${epId}` 
-        : `${BASE_URL}/api/anime/${slug}/episodes/${episode}`;
-
+      // We target the internal API that feeds these specific CDNs
+      const apiUrl = `${BASE_URL}/api/anime/${slug}/episodes/${episode}`;
       const response = yield fetch(apiUrl, {
         headers: {
-          "Referer": watchPageUrl,
+          "Referer": `${BASE_URL}/watch/${slug}?ep=${episode}`,
           "User-Agent": USER_AGENT,
-          "X-Requested-With": "XMLHttpRequest",
-          "Accept": "application/json"
+          "X-Requested-With": "XMLHttpRequest"
         }
       });
 
       const data = yield response.json();
-      const servers = data.servers || data.data?.servers || [];
+      const servers = data.episode?.servers || data.servers || [];
       const streams = [];
 
       for (const s of servers) {
-        let streamUrl = s.url || s.link;
-        if (!streamUrl) continue;
+        let url = s.url || s.link;
+        if (!url) continue;
+
+        let name = s.name || "Provider";
+        let headers = { "User-Agent": USER_AGENT, "Referer": BASE_URL };
+
+        // DOMAIN SPECIFIC FIXES based on your findings
+        if (url.includes("kwik.cx")) {
+          name = "Kwik (Fast)";
+          headers["Referer"] = "https://kwik.cx/";
+        } else if (url.includes("anvod") || url.includes("anixl")) {
+          name = "Anvod (HLS)";
+          headers["Origin"] = BASE_URL;
+        } else if (url.includes("netmagcdn")) {
+          name = "Netmag (Direct)";
+        } else if (url.includes("watching.onl")) {
+          name = "Watching (Cloud)";
+        }
 
         streams.push({
-          name: `Animelok - ${s.name || "Server"}`,
-          url: streamUrl,
-          type: streamUrl.includes(".m3u8") ? "hls" : "mp4",
+          name: `Animelok - ${name}`,
+          url: url,
+          type: url.includes(".m3u8") ? "hls" : "mp4",
           quality: "Auto",
-          headers: {
-            "Referer": BASE_URL,
-            "User-Agent": USER_AGENT,
-            "Origin": BASE_URL
-          }
+          headers: headers
         });
       }
+
       return streams;
     } catch (e) {
-      console.error("[Animelok] Critical Error:", e.message);
+      console.error("[Animelok] Script Error:", e.message);
       return [];
     }
   });
