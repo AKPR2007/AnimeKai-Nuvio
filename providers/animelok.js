@@ -1,68 +1,61 @@
-const BASE_URL = "https://animepahe.si";
+const BASE = "https://animepahe.si";
 
-async function fetchStream(title, episode) {
+const HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Referer": BASE,
+    "Origin": BASE
+};
+
+// Search anime
+async function searchAnime(title) {
+    let res = await fetch(`${BASE}/api?m=search&q=${encodeURIComponent(title)}`);
+    let json = await res.json();
+    return json.data && json.data.length ? json.data[0] : null;
+}
+
+// Get episode list
+async function getEpisode(session, episode) {
+    let res = await fetch(`${BASE}/api?m=release&id=${session}&sort=episode_asc`);
+    let json = await res.json();
+
+    let ep = json.data.find(e => Number(e.episode) === Number(episode));
+    return ep || null;
+}
+
+// Extract stream
+async function getStreamPage(sessionEp) {
+    let res = await fetch(`${BASE}/play/${sessionEp}`, { headers: HEADERS });
+    let html = await res.text();
+
+    let match = html.match(/https?:\/\/[^"]+\.m3u8[^"]*/);
+    return match ? match[0] : null;
+}
+
+// MAIN ENTRY (Nuvio uses this)
+async function getStreams(tmdbId, mediaType, season, episode, title) {
     try {
-        // 1. Search anime
-        let searchRes = await fetch(`${BASE_URL}/api?m=search&q=${encodeURIComponent(title)}`);
-        let searchJson = await searchRes.json();
+        let anime = await searchAnime(title);
+        if (!anime) return [];
 
-        if (!searchJson.data || searchJson.data.length === 0) return null;
+        let ep = await getEpisode(anime.session, episode);
+        if (!ep) return [];
 
-        let animeId = searchJson.data[0].id;
+        let stream = await getStreamPage(ep.session);
+        if (!stream) return [];
 
-        // 2. Get episode list
-        let epRes = await fetch(`${BASE_URL}/api?m=release&id=${animeId}&sort=episode_asc`);
-        let epJson = await epRes.json();
-
-        let epData = epJson.data.find(e => e.episode == episode);
-        if (!epData) return null;
-
-        // 3. Get session page (contains kwik links)
-        let sessionRes = await fetch(`${BASE_URL}/play/${epData.session}`);
-        let sessionHtml = await sessionRes.text();
-
-        // 4. Extract kwik link
-        let kwikMatch = sessionHtml.match(/https:\/\/kwik\.[^"]+/);
-        if (!kwikMatch) return null;
-
-        let kwikUrl = kwikMatch[0];
-
-        // 5. Open kwik page
-        let kwikRes = await fetch(kwikUrl);
-        let kwikHtml = await kwikRes.text();
-
-        // 6. Extract m3u8
-        let m3u8Match = kwikHtml.match(/https?:\/\/[^"]+\.m3u8[^"]*/);
-        if (!m3u8Match) return null;
-
-        return {
-            stream: m3u8Match[0],
-            referer: kwikUrl
-        };
+        return [{
+            name: "AnimePahe",
+            url: stream,
+            type: "hls",
+            headers: HEADERS
+        }];
 
     } catch (e) {
-        return null;
+        return [];
     }
 }
 
-function getStreams(tmdbId, mediaType, season, episode, title) {
-    return new Promise(async (resolve) => {
-
-        let result = await fetchStream(title, episode);
-
-        if (!result) {
-            resolve([]);
-            return;
-        }
-
-        resolve([{
-            name: "AnimePahe",
-            url: result.stream,
-            type: "hls",
-            headers: {
-                "Referer": result.referer,
-                "User-Agent": "Mozilla/5.0"
-            }
-        }]);
-    });
+// ✅ REQUIRED EXPORT (this is what you were missing)
+if (typeof module !== "undefined") {
+    module.exports = { getStreams };
 }
