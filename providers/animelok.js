@@ -44,7 +44,7 @@ var __async = (__this, __arguments, generator) => {
 
 // src/providers/animelok/index.js
 var cheerio = require("cheerio-without-node-native");
-var BASE_URL = "https://Animelok.xyz";
+var BASE_URL = "https://animelok.xyz";
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 function fetchWithTimeout(_0) {
   return __async(this, arguments, function* (url, options = {}, timeout = 1e4) {
