@@ -19,7 +19,7 @@ A collection of high-quality local scrapers for the Nuvio streaming application.
 | [![4khdhub.png](https://i.postimg.cc/Z5B7RF79/4khdhub.png)](https://postimg.cc/21YF9vfm) 4KHDHub | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇮🇳 | Film & Serial | 4K / 1080p / 720p | ✅ | ✅ |
 | [![animekai.png](https://i.postimg.cc/cLCqcnFV/animekai.png)](https://postimg.cc/9r6Nmr5p) AnimeKai | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇯🇵 | Anime | 1080p / 720p | ✅ | ✅ |
 [![brazuca.png](https://i.postimg.cc/zXyCHr7c/brazuca.png)](https://postimg.cc/bsjD44Kx) Brazuca Play | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇵🇹 🇧🇷 | Film & Serial | 1080p / 720p | ✅ | ✅ |
-[![castle.png](https://i.postimg.cc/4yqkvYvX/castle.png)](https://postimg.cc/gLVTmkB7) Castle | 🏴󠁧󠁢󠁥󠁮󠁧󠁿  | Film & Serial | 1080p / 720p | ✅ | ✅ |
+[![castle.png](https://i.postimg.cc/4yqkvYvX/castle.png)](https://postimg.cc/gLVTmkB7) Castle | 🏴󠁧󠁢󠁥󠁮󠁧󠁿  | Film & Serial | 1080p / 720p | ✅ | ❌ |
 [![dhamermovies.png](https://i.postimg.cc/jdZ9VgDq/dhamermovies.png)](https://postimg.cc/svGK7JPb) Dahmermovies | 🏴󠁧󠁢󠁥󠁮󠁧󠁿  | Film & Serial | 4K / 1080p / 720p | ✅ | ✅ |
 [![dooflix.png](https://i.postimg.cc/B6Q28JSt/dooflix.png)](https://postimg.cc/Y4ZvZKmw)  DooFlix | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇮🇳 | Film & Serial | 1080p / 720p | ✅ | ❌ |
 [![dramafull.png](https://i.postimg.cc/rwKGYQ6C/dramafull.png)](https://postimg.cc/hXR7X8tf) DramaFull | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇨🇳 🇯🇵 🇰🇷 | Asian Drama/Movies | 1080p / 720p | ✅ | ❌ |
