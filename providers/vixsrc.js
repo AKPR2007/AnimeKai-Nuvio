@@ -294,7 +294,7 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
         .then(subtitles => {
             // Return single stream with master playlist
             const nuvioStreams = [{
-                name: "Vixsrc",
+                name: "Vixsrc1",
                 title: "Auto Quality Stream",
                 url: masterPlaylistUrl,
                 quality: 'Auto',
