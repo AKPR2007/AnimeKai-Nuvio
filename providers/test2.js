@@ -1,9 +1,9 @@
 "use strict";
 
 var PROVIDER_NAME = "OnlyKDrama";
-var SITE_URL = "https://asiaflix.org";
+var SITE_URL = "https://mkvdrama.net";
 var TMDB_URL = "https://www.themoviedb.org";
-var FILEPRESS_ORIGIN = "https://hugh.cdn.rumble.cloud/video/";
+var FILEPRESS_ORIGIN = "https://pixeldrain.com/";
 var DEFAULT_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
   "Accept-Language": "en-US,en;q=0.9"
