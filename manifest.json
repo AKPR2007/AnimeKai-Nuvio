@@ -271,8 +271,8 @@
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/movieblast.js",
       "enabled": true,
-      "formats": ["mp4", "m3u8"],
-      "logo": "",
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/qqkLSyhN/movieblast.png",
       "contentLanguage": ["en", "hi", "te"]  
     },
     {
