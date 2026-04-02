@@ -156,7 +156,7 @@
       "filename": "providers/cinestream.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "",
+      "logo": "https://i.postimg.cc/0NhjWWqT/cinestream.png",
       "contentLanguage": ["en", "hi"]
     },
     {
