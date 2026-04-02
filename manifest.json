@@ -147,13 +147,13 @@
       "contentLanguage": ["en", "hi", "ar"]
     },
     {
-      "id": "cinemastream",
-      "name": "CinemaStream",
+      "id": "cinestream",
+      "name": "CineStream",
       "description": "Multi Language Provider",
       "version": "1.0.0",
       "author": "Kabir",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/cinemastream.js",
+      "filename": "providers/cinestream.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
       "logo": "",
