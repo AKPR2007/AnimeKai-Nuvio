@@ -367,6 +367,19 @@
       "contentLanguage": ["en"]
     },
     {
+      "id": "purstream",
+      "name": "Purstream",
+      "description": "Films and series in French (VF) / subtitled French (VOSTFR) / multi-language (MULTI) from purstream.art.",
+      "version": "3.0.0",
+      "author": "wooodyhood",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/purstream.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/7L5shxmC/purstream.png",
+      "contentLanguage": ["en", "fr"]
+    },
+    {
       "id": "showbox",
       "name": "ShowBox",
       "description": "ShowBox streaming with multiple quality options and versions",
