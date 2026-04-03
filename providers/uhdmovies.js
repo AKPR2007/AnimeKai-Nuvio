@@ -105,9 +105,28 @@ function extractThirdListItem(html) {
 }
 function getIndexQuality(str) {
   if (!str) return "Unknown";
-  if (/4k|uhd/i.test(str)) return "2160p";
+  // Check explicit resolution first (e.g. 2160p, 1080p, 720p)
   var m = str.match(/(\d{3,4})[pP]/);
-  return m ? m[1] + "p" : "Unknown";
+  if (m) return m[1] + "p";
+  // Only treat 4K/UHD as 2160p when it's a standalone quality tag, not part of site names like "UHDMovies"
+  if (/\b4[kK]\b/.test(str) || /\bUHD\b(?!movies)/i.test(str)) return "2160p";
+  return "Unknown";
+}
+function buildQualityLabel(str) {
+  var resolution = getIndexQuality(str);
+  var label = resolution === "2160p" ? "4K" : resolution;
+  var fuente = null;
+  if (/remux/i.test(str))           fuente = "BluRay REMUX";
+  else if (/blu.?ray|bluray/i.test(str)) fuente = "BluRay";
+  else if (/web.?dl/i.test(str))    fuente = "WEB-DL";
+  else if (/webrip/i.test(str))     fuente = "WEBRip";
+  else if (/hdrip/i.test(str))      fuente = "HDRip";
+  else if (/dvdrip/i.test(str))     fuente = "DVDRip";
+  else if (/hdtv/i.test(str))       fuente = "HDTV";
+  var codec = null;
+  if (/\bHEVC\b|\bx265\b|\bH\.?265\b/i.test(str))      codec = "x265/HEVC";
+  else if (/\bAVC\b|\bx264\b|\bH\.?264\b/i.test(str))  codec = "x264/AVC";
+  return [label, fuente, codec].filter(Boolean).join(" | ");
 }
 function cleanTitle(title) {
   var qualityTags = ["WEBRip", "WEB-DL", "WEB", "BluRay", "HDRip", "DVDRip", "HDTV", "CAM", "TS", "R5", "DVDScr", "BRRip", "BDRip", "DVD", "PDTV", "HD"];
@@ -398,7 +417,7 @@ function extractDriveseedPage(url) {
     var rawFileName = qualityText.replace("Name : ", "").trim();
     var fileName = cleanTitle(rawFileName);
     var size = extractThirdListItem(html).replace("Size : ", "").trim();
-    var quality = getIndexQuality(qualityText);
+    var quality = buildQualityLabel(qualityText);
     var labelExtras = "";
     if (fileName) labelExtras += "[" + fileName + "]";
     if (size) labelExtras += "[" + size + "]";
@@ -495,11 +514,10 @@ function getTvEpisodeLink(pageUrl, targetSeason, targetEpisode) {
           }
           if (targetEpisode <= episodeLinks.length && targetEpisode >= 1) {
             var link = episodeLinks[targetEpisode - 1];
-            var qualityM = prevDetails.match(/(1080p|720p|480p|2160p|4K|\d+0p)/i);
             var sizeM = prevDetails.match(/(\d+(?:\.\d+)?\s*(?:MB|GB))/i);
             links.push({
               sourceLink: link,
-              quality: qualityM ? qualityM[1] : "Unknown",
+              quality: buildQualityLabel(prevDetails),
               size: sizeM ? sizeM[1] : null,
               details: prevDetails
             });
@@ -566,7 +584,25 @@ function getStreams(tmdbId, mediaType, season, episode) {
         });
       });
     }
-    return processResult(0);
+    return processResult(0).then(function(streams) {
+      function scoreStream(s) {
+        var q = s.quality || "";
+        var rScore = 0;
+        if (/^4K/i.test(q))    rScore = 4;
+        else if (/1080p/i.test(q)) rScore = 3;
+        else if (/720p/i.test(q))  rScore = 2;
+        else if (/480p/i.test(q))  rScore = 1;
+        var sScore = 0;
+        if (/remux/i.test(q))       sScore = 5;
+        else if (/blu.?ray/i.test(q)) sScore = 4;
+        else if (/web.?dl/i.test(q))  sScore = 3;
+        else if (/webrip/i.test(q))   sScore = 2;
+        else if (/hdrip|dvdrip|hdtv/i.test(q)) sScore = 1;
+        return rScore * 10 + sScore;
+      }
+      streams.sort(function(a, b) { return scoreStream(b) - scoreStream(a); });
+      return streams;
+    });
   }).catch(function(err) {
     console.error("[UHDMovies] Error: " + err.message);
     return [];
