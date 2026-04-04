@@ -1,7 +1,7 @@
 const cheerio = require("cheerio-without-node-native");
 
 function getStreams(tmdbId, type, season, episode) {
-  const url = "https://cinemalux.zip";
+  const url = "https://cinemalux.online";
 
   return fetch(url)
     .then(res => res.text())
