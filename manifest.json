@@ -275,6 +275,19 @@
       "formats": ["m3u8"],
       "logo": "https://i.postimg.cc/bJnfnzHS/hdmovie2.png",
       "contentLanguage": ["hi", "en"]
+    },
+    {
+      "id": "isaidub",
+      "name": "Isaidub",
+      "description": "Tamil Dubbed Movies",
+      "version": "1.0.0",
+      "author": "Nuvio Team",
+      "supportedTypes": ["movie"],
+      "filename": "providers/isaidub.js",
+      "enabled": true,
+      "formats": ["m3u8"],
+      "logo": "",
+      "contentLanguage": ["ta"]
     },   
     {
       "id": "lamovie",
